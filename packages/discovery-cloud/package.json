@@ -1,0 +1,17 @@
+{
+  "name": "discovery-cloud",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bs58": "^4.0.1",
+    "debug": "^4.1.0",
+    "ws": "^6.1.0"
+  }
+}

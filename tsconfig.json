@@ -2,14 +2,8 @@
   "compilerOptions": {
     "outDir": "./dist",
     "declaration": true,
-    "typeRoots": [
-      "./src/types",
-      "./node_modules/@types"
-    ],
-    "lib": [
-      "es6",
-      "es2017"
-    ],
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "lib": ["es6", "es2017"],
     "sourceMap": true,
     "module": "commonjs",
     "target": "es6",
