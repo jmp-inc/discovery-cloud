@@ -3,7 +3,7 @@ import * as Base58 from 'bs58'
 import Debug from 'debug'
 import { Swarm, ConnectionDetails, PeerInfo } from './SwarmInterface'
 import WebSocket from 'ws'
-import { ServerToClient, ClientToServer, Channel, ConnectId } from './Msg'
+import { ServerToClient, ClientToServer, Channel } from './Msg'
 
 Debug.formatters.b = Base58.encode
 
@@ -61,26 +61,23 @@ export default class DiscoveryCloudClient extends EventEmitter implements Swarm 
   private connectDiscovery() {
     const discovery = new WebSocket(`${this.url}/discovery`)
 
-    discovery.addEventListener('open', () => {
-      this.sendHello()
-    })
-
-    discovery.addEventListener('close', () => {
-      log('discovery.onclose... reconnecting in 5s')
-      setTimeout(() => {
-        this.discovery = this.connectDiscovery()
-      }, 5000)
-    })
-
-    discovery.addEventListener('message', (event) => {
-      const data = Buffer.from(event.data)
-      log('discovery.ondata', data)
-      this.receive(JSON.parse(data.toString()))
-    })
-
-    discovery.addEventListener('error', (event: any) => {
-      console.error('discovery.onerror', event.error)
-    })
+    discovery
+      .on('open', () => {
+        this.sendHello()
+      })
+      .on('close', () => {
+        log('discovery.onclose... reconnecting in 5s')
+        setTimeout(() => {
+          this.discovery = this.connectDiscovery()
+        }, 5000)
+      })
+      .on('message', (data) => {
+        log('discovery.ondata', data)
+        this.receive(JSON.parse(data.toString()))
+      })
+      .on('error', (event: any) => {
+        console.error('discovery.onerror', event.error)
+      })
 
     return discovery
   }

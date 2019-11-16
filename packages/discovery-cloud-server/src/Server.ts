@@ -47,7 +47,7 @@ export default class Server {
   }
 
   listen() {
-    app.ws('/discovery', (ws, req) => {
+    app.ws('/discovery', (ws, _req) => {
       log('/discovery')
 
       ws.on('message', (data: string) => {
