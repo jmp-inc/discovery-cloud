@@ -5,26 +5,14 @@ import Debug from 'debug'
 import uuid from 'uuid'
 import MapSet from './MapSet'
 import pump from 'pump'
+import { ConnectId, Channel, ClientToServer, ServerToClient } from '../../discovery-cloud/src/Msg'
 
 const log = Debug('discovery-cloud:server')
 const expressApp = express()
 const { app } = expressWs(expressApp)
 
-export type ClientId = string & { __clientId: true }
-export type ConnectId = string & { __connectId: true }
-export type Channel = string & { __channel: true }
-
 export interface Options {
   port: number
-}
-
-export interface IncomingMsg {
-  join?: Channel[]
-  leave?: Channel[]
-}
-
-export interface OutgoingMsg {
-  connect: ConnectId
 }
 
 export default class Server {
@@ -38,11 +26,11 @@ export default class Server {
     this.channels = new MapSet()
   }
 
-  private send(peer: WebSocket, msg: OutgoingMsg): void {
+  private send(peer: WebSocket, msg: ServerToClient): void {
     peer.send(JSON.stringify(msg))
   }
 
-  private onMsg = (client: WebSocket, msg: IncomingMsg): void => {
+  private onMsg = (client: WebSocket, msg: ClientToServer): void => {
     const { join, leave } = msg
 
     if (leave) this.channels.removeAll(client, leave)
@@ -90,9 +78,9 @@ export default class Server {
   }
 
   private sendConnect(a: WebSocket, b: WebSocket) {
-    const msg = { connect: connectId() }
-    this.send(a, msg)
-    this.send(b, msg)
+    const id = connectId()
+    this.send(a, { connect: id, isClient: true })
+    this.send(b, { connect: id, isClient: false })
   }
 
   private clientsWith(channels: Channel[]): Set<WebSocket> {

@@ -1,26 +1,12 @@
-export interface Hello {
-  type: "Hello"
-  id: string
-  join: string[]
+export type ConnectId = string & { __connectId: true }
+export type Channel = string & { __channel: true }
+
+export interface ClientToServer {
+  join?: Channel[]
+  leave?: Channel[]
 }
 
-export interface Join {
-  type: "Join"
-  id: string
-  join: string[]
+export interface ServerToClient {
+  connect: ConnectId
+  isClient: boolean
 }
-
-export interface Leave {
-  type: "Leave"
-  id: string
-  leave: string[]
-}
-
-export interface Connect {
-  type: "Connect"
-  peerId: string
-  peerChannels: string[]
-}
-
-export type ClientToServer = Hello | Join | Leave
-export type ServerToClient = Connect

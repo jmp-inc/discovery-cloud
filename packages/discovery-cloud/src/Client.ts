@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events'
 import * as Base58 from 'bs58'
 import Debug from 'debug'
-import WebSocket from './WebSocket'
-import Peer from './ClientPeer'
-import Discovery from './Discovery'
+import { Swarm, ConnectionDetails, PeerInfo } from './SwarmInterface'
+import WebSocket from 'ws'
+import { ServerToClient, ClientToServer, Channel, ConnectId } from './Msg'
 
 Debug.formatters.b = Base58.encode
 
@@ -13,49 +13,37 @@ export interface Options {
   url: string
 }
 
-export default class DiscoveryCloudClient extends EventEmitter {
+export default class DiscoveryCloudClient extends EventEmitter implements Swarm {
   url: string
-  channels: Set<string> = new Set()
-  peers: Map<string, Peer> = new Map()
-  discovery: Discovery
+  channels: Set<Channel> = new Set()
+  discovery: WebSocket
 
   constructor(opts: Options) {
     super()
 
     this.url = opts.url
-    this.discovery = new Discovery(this.url)
+    this.discovery = this.connectDiscovery()
 
     log('Initialized %o', opts)
   }
 
   join(channelBuffer: Buffer) {
-    log('join %b', channelBuffer)
-
-    const channel = Base58.encode(channelBuffer)
+    const channel = encodeChannel(channelBuffer)
     this.channels.add(channel)
 
     if (this.discovery.readyState === WebSocket.OPEN) {
       this.send({
-        type: 'Join',
-        id: this.id,
         join: [channel],
       })
     }
   }
 
   leave(channelBuffer: Buffer) {
-    log('leave %b', channelBuffer)
-
-    const channel = Base58.encode(channelBuffer)
+    const channel = encodeChannel(channelBuffer)
     this.channels.delete(channel)
-    this.peers.forEach((peer) => {
-      if (peer.has(channel)) peer.close(channel)
-    })
 
     if (this.discovery.readyState === WebSocket.OPEN) {
       this.send({
-        type: 'Leave',
-        id: this.id,
         leave: [channel],
       })
     }
@@ -65,26 +53,73 @@ export default class DiscoveryCloudClient extends EventEmitter {
     // NOOP
   }
 
-  private onConnect(id: string, channels: string[]) {
-    const peer = this.peer(id)
+  destroy(cb: () => void) {
+    this.discovery.close()
+    cb()
+  }
 
-    const newChannels = channels.filter((ch) => !peer.connections.has(ch))
+  private connectDiscovery() {
+    const discovery = new WebSocket(`${this.url}/discovery`)
 
-    newChannels.forEach((channel) => {
-      peer.add(channel)
+    discovery.addEventListener('open', () => {
+      this.sendHello()
+    })
+
+    discovery.addEventListener('close', () => {
+      log('discovery.onclose... reconnecting in 5s')
+      setTimeout(() => {
+        this.discovery = this.connectDiscovery()
+      }, 5000)
+    })
+
+    discovery.addEventListener('message', (event) => {
+      const data = Buffer.from(event.data)
+      log('discovery.ondata', data)
+      this.receive(JSON.parse(data.toString()))
+    })
+
+    discovery.addEventListener('error', (event: any) => {
+      console.error('discovery.onerror', event.error)
+    })
+
+    return discovery
+  }
+
+  private sendHello() {
+    this.send({
+      join: [...this.channels],
     })
   }
 
-  private peer(id: string): Peer {
-    const existing = this.peers.get(id)
-    if (existing) return existing
-
-    log('creating peer %s', id)
-
-    const url = `${this.url}/connect/${this.id}`
-    const peer = new Peer({ url, id, stream: this.connect })
-    this.peers.set(id, peer)
-
-    return peer
+  private send(msg: ClientToServer) {
+    log('discovery.send %o', msg)
+    this.discovery.send(JSON.stringify(msg))
   }
+
+  private receive({ connect, isClient }: ServerToClient) {
+    const peer: PeerInfo = {
+      host: 'discovery-cloud',
+      port: 0,
+      local: false,
+    }
+
+    this.emit('peer', peer)
+
+    const socket = new WebSocket(`${this.url}/connect/${connect}`)
+    socket.binaryType = 'arraybuffer'
+
+    const conn = (WebSocket as any).createWebSocketStream(socket)
+    socket.on('open', () => {
+      const details: ConnectionDetails = {
+        client: isClient,
+        type: 'relay',
+        peer,
+      }
+      this.emit('connection', conn, details)
+    })
+  }
+}
+
+function encodeChannel(buffer: Buffer): Channel {
+  return Base58.encode(buffer) as Channel
 }
