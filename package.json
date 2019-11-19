@@ -4,6 +4,7 @@
     "packages/*"
   ],
   "scripts": {
+    "start": "yarn server start",
     "client": "yarn workspace discovery-cloud",
     "server": "yarn workspace discovery-cloud-server",
     "test": "ts-node --files node_modules/tape/bin/tape **/__tests__/**/*.test.ts"

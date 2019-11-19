@@ -1,28 +1,29 @@
+# Discovery Cloud
 
-# Client or Discovery Cloud Server
+This was made as a (mostly) drop-in replacement for hyperswarm.
 
-A simple discovery cloud client library that can be paired with the [discovery-cloud-server](https://github.com/orionz/discovery-cloud-server) to be used as a cloud based alternative to [discovery-swarm](https://github.com/mafintosh/discovery-swarm)
+https://github.com/hyperswarm/hyperswarm
 
-### Example
+We were developing on a platform (Chrome App) that had some serious network
+bugs and platform limitations, and built this as a replacement. This is the server
+portion of the project that will allow peers to find each other via discovery
+keys and get piped websockets to each other.
 
-```ts
-  import { Repo } from "hypermerge"
+This app is intended to be deployable to heroku out of the box and require no
+configuration. By its design it should only ever run with a single dyno as
+there's no backplane for processes to communicate with each other.
 
-  import Client from "discovery-cloud-client"
+### Setup
 
-  const ram: Function = require("random-access-memory")
+The code should work as a heroku app out of the box with no extra setup.
 
-  const repo = new Repo({ storage: ram })
-
-  const discovery = new Client({
-    url: "wss://fish-monger-9999.herokuapp.com",
-    id: repo.id,
-    stream: repo.stream,
-  })
-
-  repo.replicate(discovery)
+```
+  $ heroku create
+  Creating app... done, ⬢ fish-monger-9999
+  https://fish-monger-9999.herokuapp.com/ | https://git.heroku.com/fish-monger-9999.git
+  $ git push heroku master
 ```
 
-### License 
+### LICENSE
 
 MIT

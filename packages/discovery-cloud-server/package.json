@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node server.js"
+    "start": "ts-node src/index.ts"
   },
   "dependencies": {
     "bs58": "^4.0.1",
