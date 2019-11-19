@@ -7,7 +7,7 @@
     "start": "yarn server start",
     "build": "yarn workspaces run build",
     "clean": "yarn workspaces run clean",
-    "publish": "yarn build && yarn workspaces run publish --non-interactive",
+    "publish": "yarn clean && yarn build && yarn workspaces run publish --non-interactive",
     "client": "yarn workspace discovery-cloud",
     "server": "yarn workspace discovery-cloud-server",
     "test": "ts-node --files node_modules/tape/bin/tape **/__tests__/**/*.test.ts"
