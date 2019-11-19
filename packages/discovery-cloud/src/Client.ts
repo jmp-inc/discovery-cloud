@@ -1,117 +1,83 @@
 import { EventEmitter } from 'events'
 import * as Base58 from 'bs58'
-import Debug from 'debug'
-import { Swarm, ConnectionDetails, PeerInfo } from './SwarmInterface'
+import { Swarm, ConnectionDetails, PeerInfo, SwarmEvents } from './SwarmInterface'
 import WebSocket from 'ws'
-import { ServerToClient, ClientToServer, Channel } from './Msg'
-
-Debug.formatters.b = Base58.encode
-
-const log = Debug('discovery-cloud:Client')
+import { Channel } from './Msg'
+import Discovery, { Handlers } from './Discovery'
 
 export interface Options {
-  url: string
+  host: string
+  port: number
 }
 
 export default class DiscoveryCloudClient extends EventEmitter implements Swarm {
-  url: string
-  channels: Set<Channel> = new Set()
-  discovery: WebSocket
+  discovery: Discovery
+  host: string
+  port: number
 
-  constructor(opts: Options) {
+  constructor({ host, port }: Options) {
     super()
 
-    this.url = opts.url
-    this.discovery = this.connectDiscovery()
+    this.host = host
+    this.port = port
+    this.discovery = new Discovery(this.root, {
+      onConnect: this.onConnect,
+    })
+  }
 
-    log('Initialized %o', opts)
+  get root(): string {
+    return `ws://${this.host}:${this.port}`
   }
 
   join(channelBuffer: Buffer) {
-    const channel = encodeChannel(channelBuffer)
-    this.channels.add(channel)
-
-    if (this.discovery.readyState === WebSocket.OPEN) {
-      this.send({
-        join: [channel],
-      })
-    }
+    this.discovery.join(encodeChannel(channelBuffer))
   }
 
   leave(channelBuffer: Buffer) {
-    const channel = encodeChannel(channelBuffer)
-    this.channels.delete(channel)
-
-    if (this.discovery.readyState === WebSocket.OPEN) {
-      this.send({
-        leave: [channel],
-      })
-    }
+    this.discovery.leave(encodeChannel(channelBuffer))
   }
 
   listen(_port: unknown) {
     // NOOP
   }
 
-  destroy(cb: () => void) {
+  close(): void {
+    this.destroy()
+  }
+
+  destroy(cb?: () => void) {
     this.discovery.close()
-    cb()
+    cb?.()
   }
 
-  private connectDiscovery() {
-    const discovery = new WebSocket(`${this.url}/discovery`)
-
-    discovery
-      .on('open', () => {
-        this.sendHello()
-      })
-      .on('close', () => {
-        log('discovery.onclose... reconnecting in 5s')
-        setTimeout(() => {
-          this.discovery = this.connectDiscovery()
-        }, 5000)
-      })
-      .on('message', (data) => {
-        log('discovery.ondata', data)
-        this.receive(JSON.parse(data.toString()))
-      })
-      .on('error', (event: any) => {
-        console.error('discovery.onerror', event.error)
-      })
-
-    return discovery
+  on<K extends keyof SwarmEvents>(name: K, cb: SwarmEvents[K]): this {
+    return super.on(name, cb)
   }
 
-  private sendHello() {
-    this.send({
-      join: [...this.channels],
-    })
-  }
-
-  private send(msg: ClientToServer) {
-    log('discovery.send %o', msg)
-    this.discovery.send(JSON.stringify(msg))
-  }
-
-  private receive({ connect, isClient }: ServerToClient) {
+  private onConnect: Handlers['onConnect'] = ({ id, isClient }) => {
     const peer: PeerInfo = {
-      host: 'discovery-cloud',
-      port: 0,
+      host: this.host,
+      port: this.port,
       local: false,
+    }
+
+    const details: ConnectionDetails = {
+      client: isClient,
+      type: 'relay',
+      peer,
     }
 
     this.emit('peer', peer)
 
-    const socket = new WebSocket(`${this.url}/connect/${connect}`)
-    socket.binaryType = 'arraybuffer'
+    const socket = new WebSocket(`${this.root}/connect/${id}`)
 
     const conn = (WebSocket as any).createWebSocketStream(socket)
+    conn.on('end', () => {
+      // NOTE(jeff): This is probably a hack, but otherwise the conn
+      // does not emit 'close'
+      conn.destroy()
+    })
     socket.on('open', () => {
-      const details: ConnectionDetails = {
-        client: isClient,
-        type: 'relay',
-        peer,
-      }
       this.emit('connection', conn, details)
     })
   }

@@ -1,15 +1,15 @@
+import http from 'http'
 import express from 'express'
-import WebSocket from 'ws'
+import WebSocket, { AddressInfo } from 'ws'
 import expressWs from 'express-ws'
 import Debug from 'debug'
 import uuid from 'uuid'
 import MapSet from './MapSet'
 import pump from 'pump'
 import { ConnectId, Channel, ClientToServer, ServerToClient } from '../../discovery-cloud/src/Msg'
+import { Duplex } from 'stream'
 
-const log = Debug('discovery-cloud:server')
-const expressApp = express()
-const { app } = expressWs(expressApp)
+const log = Debug('discovery-cloud:Server')
 
 export interface Options {
   port: number
@@ -17,13 +17,63 @@ export interface Options {
 
 export default class Server {
   port: number
-  pending: Map<ConnectId, NodeJS.ReadWriteStream>
+  pending: Map<ConnectId, Duplex>
   channels: MapSet<WebSocket, Channel>
+  app: expressWs.Application
+  server?: http.Server
 
   constructor({ port }: Options) {
     this.port = port
     this.pending = new Map()
     this.channels = new MapSet()
+    this.app = expressWs(express()).app
+  }
+
+  close(): Promise<void> {
+    return new Promise((res) => {
+      if (!this.server) return res()
+      this.server.close(() => res())
+    })
+  }
+
+  listen(): Promise<AddressInfo> {
+    this.app.ws('/discovery', this.onDiscovery)
+    this.app.ws('/connect/:id', this.onConnect)
+
+    return new Promise((res) => {
+      this.server = this.app.listen(this.port, '0.0.0.0', () => {
+        const address = this.server?.address() as AddressInfo
+        log('Listening:', address)
+        res(address)
+      })
+    })
+  }
+
+  private onDiscovery = (ws: WebSocket) => {
+    log('/discovery')
+
+    ws.on('message', (data: string) => {
+      this.onMsg(ws, JSON.parse(data))
+    }).on('close', () => {
+      this.channels.delete(ws)
+    })
+  }
+
+  private onConnect = (ws: WebSocket, req: express.Request) => {
+    ws.binaryType = 'nodebuffer'
+
+    const id = req.params.id as ConnectId
+    const duplex = (WebSocket as any).createWebSocketStream(ws) as Duplex
+    const pending = this.pending.get(id)
+
+    if (pending) {
+      this.pending.delete(id)
+      pump(duplex, pending, duplex)
+      log('Connect: %s', id)
+    } else {
+      this.pending.set(id, duplex)
+      log('Pending connect: %s', id)
+    }
   }
 
   private send(peer: WebSocket, msg: ServerToClient): void {
@@ -44,37 +94,6 @@ export default class Server {
 
       this.channels.merge(client, join)
     }
-  }
-
-  listen() {
-    app.ws('/discovery', (ws, _req) => {
-      log('/discovery')
-
-      ws.on('message', (data: string) => {
-        this.onMsg(ws, JSON.parse(data))
-      }).on('close', () => {
-        this.channels.delete(ws)
-      })
-    })
-
-    app.ws('/connect/:id', (ws, req) => {
-      const id = req.param('id') as ConnectId
-      const duplex = (WebSocket as any).createWebSocketStream(ws) as NodeJS.ReadWriteStream
-      const pending = this.pending.get(id)
-
-      if (pending) {
-        this.pending.delete(id)
-        pump(duplex, pending, duplex)
-        log('Connect: %s', id)
-      } else {
-        this.pending.set(id, duplex)
-        log('Pending connect: %s', id)
-      }
-    })
-
-    app.listen(this.port, '0.0.0.0', (_err) => {
-      console.log('Listening on port', this.port)
-    })
   }
 
   private sendConnect(a: WebSocket, b: WebSocket) {
