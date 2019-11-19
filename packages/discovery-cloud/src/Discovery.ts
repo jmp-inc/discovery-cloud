@@ -60,6 +60,8 @@ export default class Discovery {
     log('connecting...')
     this.socket = new WebSocket(this.url)
 
+    this.startHeartbeat(this.socket)
+
     this.socket
       .on('open', () => {
         log('connected')
@@ -81,6 +83,16 @@ export default class Discovery {
       .on('error', (err) => {
         console.error('onerror', err)
       })
+  }
+
+  private startHeartbeat(socket: WebSocket): void {
+    const interval = setInterval(() => {
+      socket.ping()
+    }, 5000)
+
+    socket.once('close', () => {
+      clearInterval(interval)
+    })
   }
 
   private sendHello() {
