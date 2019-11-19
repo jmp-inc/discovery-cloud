@@ -1,6 +1,6 @@
 {
   "name": "discovery-cloud-server",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "main": "dist/Server.js",
   "license": "MIT",
   "scripts": {
