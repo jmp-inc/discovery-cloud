@@ -2,10 +2,10 @@
   "name": "discovery-cloud",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "main": "dist/Client.js",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -r dist"
+    "clean": "rm -r dist/*"
   },
   "author": "",
   "license": "MIT",

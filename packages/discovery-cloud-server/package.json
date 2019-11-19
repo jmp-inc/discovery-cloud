@@ -1,12 +1,12 @@
 {
   "name": "discovery-cloud-server",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "dist/Server.js",
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -r dist",
-    "start": "ts-node src/index.ts"
+    "clean": "rm -r dist/*",
+    "start": "ts-node src/cli.ts"
   },
   "dependencies": {
     "bs58": "^4.0.1",
