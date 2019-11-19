@@ -87,7 +87,7 @@ export default class Discovery {
 
   private startHeartbeat(socket: WebSocket): void {
     const interval = setInterval(() => {
-      socket.ping()
+      if (socket.readyState === WebSocket.OPEN) socket.ping()
     }, 5000)
 
     socket.once('close', () => {
