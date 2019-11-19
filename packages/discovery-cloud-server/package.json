@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -r dist/*",
-    "start": "ts-node src/cli.ts"
+    "start": "node dist/cli.js"
   },
   "dependencies": {
     "bs58": "^4.0.1",
