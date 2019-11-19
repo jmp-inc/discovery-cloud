@@ -63,7 +63,9 @@ export default class Server {
     ws.binaryType = 'nodebuffer'
 
     const id = req.params.id as ConnectId
-    const duplex = (WebSocket as any).createWebSocketStream(ws) as Duplex
+    const duplex = (WebSocket as any).createWebSocketStream(ws, {
+      allowHalfOpen: false,
+    }) as Duplex
     const pending = this.pending.get(id)
 
     if (pending) {

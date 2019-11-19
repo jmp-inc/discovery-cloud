@@ -71,7 +71,9 @@ export default class DiscoveryCloudClient extends EventEmitter implements Swarm 
 
     const socket = new WebSocket(`${this.root}/connect/${id}`)
 
-    const conn = (WebSocket as any).createWebSocketStream(socket)
+    const conn = (WebSocket as any).createWebSocketStream(socket, {
+      allowHalfOpen: false,
+    })
     conn.on('end', () => {
       // NOTE(jeff): This is probably a hack, but otherwise the conn
       // does not emit 'close'
