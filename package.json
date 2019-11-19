@@ -6,11 +6,13 @@
   "scripts": {
     "start": "yarn server start",
     "build": "yarn workspaces run build",
+    "clean": "yarn workspaces run clean",
     "client": "yarn workspace discovery-cloud",
     "server": "yarn workspace discovery-cloud-server",
     "test": "ts-node --files node_modules/tape/bin/tape **/__tests__/**/*.test.ts"
   },
   "devDependencies": {
+    "@types/bs58": "^4.0.1",
     "@types/debug": "^4.1.5",
     "@types/express": "^4.17.2",
     "@types/express-ws": "^3.0.0",

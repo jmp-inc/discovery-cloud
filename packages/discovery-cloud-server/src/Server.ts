@@ -6,7 +6,7 @@ import Debug from 'debug'
 import uuid from 'uuid'
 import MapSet from './MapSet'
 import pump from 'pump'
-import { ConnectId, Channel, ClientToServer, ServerToClient } from '../../discovery-cloud/src/Msg'
+import { ConnectId, Channel, ClientToServer, ServerToClient } from './Msg'
 import { Duplex } from 'stream'
 
 const log = Debug('discovery-cloud:Server')

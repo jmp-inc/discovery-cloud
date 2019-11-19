@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
+    "clean": "rm -r dist",
     "start": "ts-node src/index.ts"
   },
   "dependencies": {
