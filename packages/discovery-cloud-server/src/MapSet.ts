@@ -55,7 +55,6 @@ export default class MapSet<A, B> {
     for (const [key, vals] of this.map) {
       if (vals.has(val)) {
         keys.add(key)
-        break
       }
     }
     return keys
