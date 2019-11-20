@@ -81,7 +81,7 @@ export default class Discovery {
         this.receive(JSON.parse(data.toString()))
       })
       .on('error', (err) => {
-        console.error('onerror', err)
+        log('onerror', err)
       })
   }
 

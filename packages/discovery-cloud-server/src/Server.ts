@@ -88,13 +88,14 @@ export default class Server {
     if (leave) this.channels.removeAll(client, leave)
 
     if (join) {
-      const shared = this.clientsWith(join)
+      const newChannels = this.withoutExisting(client, join)
+      const shared = this.clientsWith(newChannels)
       shared.delete(client)
       for (const other of shared) {
         this.sendConnect(client, other)
       }
 
-      this.channels.merge(client, join)
+      this.channels.merge(client, newChannels)
     }
   }
 
@@ -102,6 +103,10 @@ export default class Server {
     const id = connectId()
     this.send(a, { connect: id, isClient: true })
     this.send(b, { connect: id, isClient: false })
+  }
+
+  private withoutExisting(client: WebSocket, channels: Channel[]): Channel[] {
+    return channels.filter((ch) => !this.channels.has(client, ch))
   }
 
   private clientsWith(channels: Channel[]): Set<WebSocket> {
