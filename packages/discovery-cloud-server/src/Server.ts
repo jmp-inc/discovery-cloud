@@ -100,6 +100,8 @@ export default class Server {
   }
 
   private sendConnect(a: WebSocket, b: WebSocket) {
+    if (a === b) return
+
     const id = connectId()
     this.send(a, { connect: id, isClient: true })
     this.send(b, { connect: id, isClient: false })
