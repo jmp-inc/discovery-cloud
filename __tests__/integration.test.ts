@@ -5,9 +5,10 @@ import Server from '../packages/discovery-cloud-server/src/Server'
 test('discovery-cloud', async (t) => {
   const server = new Server({ port: 0 })
   const { port } = await server.listen()
+  const url = `ws://localhost:${port}`
 
-  const clientA = new Client({ host: 'localhost', port })
-  const clientB = new Client({ host: 'localhost', port })
+  const clientA = new Client({ url })
+  const clientB = new Client({ url })
 
   t.test('opening connection and sending data', (t) => {
     t.plan(4)
